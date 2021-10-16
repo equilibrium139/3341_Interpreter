@@ -119,19 +119,14 @@ public abstract class ParseTreeNode
 
     public static class Decl extends Stmt
     {
-        public enum Type
-        {
-            INT, REF
-        }
-
-        public Type type;
+        public VarType type;
         public List<String> ids;
 
         @Override
         public void print(int indentationLevel) {
             String indent = tabs(indentationLevel);
             System.out.print(indent);
-            if (type == Type.INT) System.out.print("int ");
+            if (type == VarType.INT) System.out.print("int ");
             else System.out.print("ref ");
             for (int i = 0; i < ids.size() - 1; i++) System.out.print(ids.get(i) + ",");
             System.out.println(ids.get(ids.size() - 1) + ";");

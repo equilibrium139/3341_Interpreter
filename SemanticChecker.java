@@ -1,55 +1,17 @@
-import java.util.HashMap;
 import java.util.List;
 
 public class SemanticChecker {
-    private enum VarType
-    {
-        INT, REF
-    }
-
-    private class Scope
-    {
-        HashMap<String, VarType> variables;
-        Scope parent;
-
-        public Scope()
-        {
-            variables = new HashMap<>();
-            parent = null;
-        }
-
-        public VarType GetType(String name)
-        {
-            VarType type = variables.get(name);
-            if (type == null && parent != null)
-            {
-                return parent.GetType(name);
-            }
-            return type;
-        }
-
-        public void Add(String name, VarType type)
-        {
-            variables.put(name, type);
-        }
-
-        public boolean Contains(String name)
-        {
-            return variables.containsKey(name);
-        }
-    }
-
     private static void error(String message)
     {
         System.out.println(message);
         System.exit(1);
     }
 
-    Scope currentScope;
+    Scope<VarType> currentScope;
 
     private void pushScope()
     {
-        Scope newScope = new Scope();
+        Scope<VarType> newScope = new Scope<>();
         newScope.parent = currentScope;
         currentScope = newScope;
     }
@@ -61,7 +23,7 @@ public class SemanticChecker {
 
     public SemanticChecker(ParseTreeNode.Program root)
     {
-        currentScope = new Scope();
+        currentScope = new Scope<>();
         program(root);
     }
 
@@ -89,7 +51,6 @@ public class SemanticChecker {
 
     void decl(ParseTreeNode.Decl decl)
     {
-        VarType type = decl.type == ParseTreeNode.Decl.Type.INT ? VarType.INT : VarType.REF;
         for (String id : decl.ids)
         {
             if (currentScope.Contains(id))
@@ -98,7 +59,7 @@ public class SemanticChecker {
             }
             else
             {
-                currentScope.Add(id, type);
+                currentScope.Add(id, decl.type);
             }
         }
     }
@@ -136,7 +97,7 @@ public class SemanticChecker {
     }
 
     private void input(ParseTreeNode.Input stmt) {
-        if (currentScope.GetType(stmt.id) == null)
+        if (currentScope.Get(stmt.id) == null)
         {
             error("Attempting to get input into undeclared variable '" + stmt.id + "'.");
         }
@@ -163,7 +124,7 @@ public class SemanticChecker {
     }
 
     private void assign(ParseTreeNode.Assign stmt) {
-        VarType type = currentScope.GetType(stmt.id);
+        VarType type = currentScope.Get(stmt.id);
 
         if (type == null)
         {
@@ -186,7 +147,7 @@ public class SemanticChecker {
                 {
                     error("Attempting to store a reference in int variable '" + stmt.id + "'.");
                 }
-                if (currentScope.GetType(stmt.idRHS) != VarType.REF)
+                if (currentScope.Get(stmt.idRHS) != VarType.REF)
                 {
                     error("Attemping to store a reference to an int or undeclared variable '" + stmt.idRHS + "'.");
                 }
@@ -226,7 +187,7 @@ public class SemanticChecker {
         }
         else if (factor.id != null)
         {
-            if (currentScope.GetType(factor.id) == null)
+            if (currentScope.Get(factor.id) == null)
             {
                 error("Attempting to use undeclared variable '" + factor.id + "'.");
             }

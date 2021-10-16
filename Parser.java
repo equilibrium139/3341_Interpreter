@@ -110,12 +110,12 @@ public class Parser {
         var decl = new ParseTreeNode.Decl();
         if (consume(Core.INT))
         {
-            decl.type = ParseTreeNode.Decl.Type.INT;
+            decl.type = VarType.INT;
         }
         else
         {
             consume(Core.REF);
-            decl.type = ParseTreeNode.Decl.Type.REF;
+            decl.type = VarType.REF;
         }
         decl.ids = idList();
         expect("Declaration must end with ';'.", Core.SEMICOLON);

@@ -6,7 +6,8 @@ class Main {
 		Scanner S = new Scanner(args[0]);
 		Parser parser = new Parser(S);
 		SemanticChecker checker = new SemanticChecker(parser.root);
-		parser.root.print(0);
+		// parser.root.print(0);
+		Executor executor = new Executor(parser.root, args[1]);
 
 		// Print the token stream
 		// while (S.currentToken() != Core.EOF && S.currentToken() != Core.ERROR) {

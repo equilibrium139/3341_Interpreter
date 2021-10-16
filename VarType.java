@@ -1,0 +1,4 @@
+enum VarType
+{
+    INT, REF
+}
