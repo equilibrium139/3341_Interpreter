@@ -261,7 +261,11 @@ public class Executor {
             // id = expr
             else
             {
-                setHeapVar(stmt.id, expr(stmt.exprRHS));
+                if (varInfo.value == null)
+                {
+                    error("Can't assign a value to a null reference.");
+                }
+                else setHeapVar(stmt.id, expr(stmt.exprRHS));
             }
         }
     }
