@@ -59,7 +59,7 @@ public class SemanticChecker {
             }
             else
             {
-                currentScope.Add(id, decl.type);
+                currentScope.Declare(id, decl.type);
             }
         }
     }

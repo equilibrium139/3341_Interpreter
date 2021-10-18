@@ -45,7 +45,7 @@ public class Executor {
     {
         heap.add(0);
         var newValue = new VariableInfo(VarType.REF, heap.size() - 1);
-        currentScope.Set(name, newValue);
+        currentScope.Assign(name, newValue);
     }
 
     private void setHeapVar(String name, Integer newValue)
@@ -100,7 +100,7 @@ public class Executor {
 
         for (var id : decl.ids)
         {
-            currentScope.Add(id, new VariableInfo(decl.type, value));
+            currentScope.Declare(id, new VariableInfo(decl.type, value));
         }
     }
 
@@ -189,7 +189,7 @@ public class Executor {
         if (varInfo.type == VarType.INT)
         {
             var newValue = new VariableInfo(VarType.INT, inputValue);
-            currentScope.Set(stmt.id, newValue);
+            currentScope.Assign(stmt.id, newValue);
         }
         else
         {
@@ -242,7 +242,7 @@ public class Executor {
         {
             var newValue = new VariableInfo(VarType.INT, 0);
             newValue.value = expr(stmt.exprRHS);
-            currentScope.Set(stmt.id, newValue);
+            currentScope.Assign(stmt.id, newValue);
         }
         else
         {
@@ -256,7 +256,7 @@ public class Executor {
             {
                 var rhsVarInfo = currentScope.Get(stmt.idRHS);
                 var newValue = new VariableInfo(VarType.REF, rhsVarInfo.value);
-                currentScope.Set(stmt.id, newValue);
+                currentScope.Assign(stmt.id, newValue);
             }
             // id = expr
             else

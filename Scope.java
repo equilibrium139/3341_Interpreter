@@ -21,14 +21,21 @@ public class Scope<T>
         return t;
     }
 
-    public void Add(String name, T type)
-    {
-        variables.put(name, type);
-    }
-
-    public void Set(String name, T newValue)
+    public void Declare(String name, T newValue)
     {
         variables.put(name, newValue);
+    }
+
+    public void Assign(String name, T newValue)
+    {
+        if (variables.containsKey(name))
+        {
+            variables.put(name, newValue);
+            return;
+        }
+
+        assert parent != null : "Attempting to assign to non-existent variable " + name;
+        parent.Assign(name, newValue);
     }
 
     public boolean Contains(String name)
