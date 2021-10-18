@@ -1,5 +1,0 @@
-program
-	ref x;
-begin
-	x=1;
-end
