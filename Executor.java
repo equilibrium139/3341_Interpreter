@@ -1,7 +1,7 @@
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-
 
 public class Executor {
     private class VariableInfo
@@ -15,42 +15,86 @@ public class Executor {
         }
     }
 
-    Scope<VariableInfo> staticVariables;
-    Scope<VariableInfo> currentScope;
+    private class FuncInfo
+    {
+        List<String> params;
+        List<ParseTreeNode.Stmt> body;
+        FuncInfo(List<String> params, List<ParseTreeNode.Stmt> body)
+        {
+            this.params = params;
+            this.body = body;
+        }
+    }
+
+    Frame<VariableInfo> currentFrame;
+    Frame<VariableInfo> globalFrame;
+    Scope<VariableInfo> globalScope;
+    // Scope<VariableInfo> staticVariables;
+    // Scope<VariableInfo> currentScope;
     List<Integer> heap;
+    HashMap<String, FuncInfo> functions;
     Scanner dataScanner;
 
     Executor(ParseTreeNode.Program p, String dataFilename) throws IOException
     {
-        staticVariables = new Scope<>();
-        currentScope = staticVariables;
+        globalFrame = new Frame<>();
+        currentFrame = globalFrame;
+        globalScope = globalFrame.currentScope;
         heap = new ArrayList<>();
+        functions = new HashMap<>();
         dataScanner = new Scanner(dataFilename);
         program(p);
     }
 
+    private void executeFunc(String funcName, List<String> args)
+    {
+        // Push new frame
+        var funcInfo = functions.get(funcName);
+        List<VariableInfo> paramsValues = new ArrayList<>();
+        for (int i = 0; i < args.size(); i++)
+        {
+            String arg = args.get(i);
+            paramsValues.add(currentScope().Get(arg));
+        }
+        Frame<VariableInfo> newFrame = new Frame<>(globalScope, funcInfo.params, paramsValues, currentFrame);
+        currentFrame = newFrame;
+
+        // Execute function body
+        stmtSeq(funcInfo.body);
+
+        popFrame();
+    }
+
+    private void popFrame()
+    {
+        currentFrame = currentFrame.parent;
+    }
+
     private void pushScope()
     {
-        Scope<VariableInfo> newScope = new Scope<>();
-        newScope.parent = currentScope;
-        currentScope = newScope;
+        currentFrame.pushScope();
     }
 
     private void popScope()
     {
-        currentScope = currentScope.parent;
+        currentFrame.popScope();
+    }
+
+    private Scope<VariableInfo> currentScope()
+    {
+        return currentFrame.currentScope;
     }
 
     private void newHeapVar(String name)
     {
         heap.add(0);
         var newValue = new VariableInfo(VarType.REF, heap.size() - 1);
-        currentScope.Assign(name, newValue);
+        currentScope().Assign(name, newValue);
     }
 
     private void setHeapVar(String name, Integer newValue)
     {
-        var varInfo = currentScope.Get(name);
+        var varInfo = currentScope().Get(name);
         int index = varInfo.value;
         heap.set(index, newValue);
     }
@@ -75,12 +119,17 @@ public class Executor {
         stmtSeq(p.stmtSeq);
     }
 
-    void declSeq(List<ParseTreeNode.Decl> decls)
+    void declSeq(ParseTreeNode.DeclSeq decls)
     {
         // All decls here are static variables since declSeq can only occur in global scope
-        for (var d : decls)
+        for (var d : decls.declSeq)
         {
             decl(d);
+        }
+
+        for (var d : decls.funcDeclSeq)
+        {
+            funcDecl(d);
         }
     }
 
@@ -94,14 +143,20 @@ public class Executor {
         popScope();
     }
 
-    void decl(ParseTreeNode.Decl decl)
+    void decl(ParseTreeNode.VarDecl decl)
     {
         Integer value = decl.type == VarType.INT ? 0 : null;
 
         for (var id : decl.ids)
         {
-            currentScope.Declare(id, new VariableInfo(decl.type, value));
+            currentScope().Declare(id, new VariableInfo(decl.type, value));
         }
+    }
+
+    void funcDecl(ParseTreeNode.FuncDecl decl)
+    {
+        FuncInfo value = new FuncInfo(decl.params, decl.body);
+        functions.put(decl.id, value);
     }
 
     void stmt(ParseTreeNode.Stmt stmt)
@@ -126,10 +181,18 @@ public class Executor {
         {
             output((ParseTreeNode.Output)stmt);
         }
-        else if (stmt instanceof ParseTreeNode.Decl)
+        else if (stmt instanceof ParseTreeNode.VarDecl)
         {
-            decl((ParseTreeNode.Decl)stmt);
+            decl((ParseTreeNode.VarDecl)stmt);
         }
+        else if (stmt instanceof ParseTreeNode.FuncCall)
+        {
+            funcCall((ParseTreeNode.FuncCall)stmt);
+        }
+    }
+
+    private void funcCall(ParseTreeNode.FuncCall stmt) {
+        executeFunc(stmt.id, stmt.params);
     }
 
     private void output(ParseTreeNode.Output stmt) {
@@ -163,7 +226,7 @@ public class Executor {
     private Integer factor(ParseTreeNode.Factor lhs) {
         if (lhs.id != null)
         {
-            var varInfo = currentScope.Get(lhs.id);
+            var varInfo = currentScope().Get(lhs.id);
             if (varInfo.type == VarType.INT) return varInfo.value;
             else 
             {
@@ -185,11 +248,11 @@ public class Executor {
             error("No more input values available in data file");
         }
 
-        var varInfo = currentScope.Get(stmt.id);
+        var varInfo = currentScope().Get(stmt.id);
         if (varInfo.type == VarType.INT)
         {
             var newValue = new VariableInfo(VarType.INT, inputValue);
-            currentScope.Assign(stmt.id, newValue);
+            currentScope().Assign(stmt.id, newValue);
         }
         else
         {
@@ -236,13 +299,13 @@ public class Executor {
     }
 
     private void assign(ParseTreeNode.Assign stmt) {
-        var varInfo = currentScope.Get(stmt.id);
+        var varInfo = currentScope().Get(stmt.id);
 
         if (varInfo.type == VarType.INT)
         {
             var newValue = new VariableInfo(VarType.INT, 0);
             newValue.value = expr(stmt.exprRHS);
-            currentScope.Assign(stmt.id, newValue);
+            currentScope().Assign(stmt.id, newValue);
         }
         else
         {
@@ -254,9 +317,9 @@ public class Executor {
             // id = ref id
             else if (stmt.exprRHS == null)
             {
-                var rhsVarInfo = currentScope.Get(stmt.idRHS);
+                var rhsVarInfo = currentScope().Get(stmt.idRHS);
                 var newValue = new VariableInfo(VarType.REF, rhsVarInfo.value);
-                currentScope.Assign(stmt.id, newValue);
+                currentScope().Assign(stmt.id, newValue);
             }
             // id = expr
             else

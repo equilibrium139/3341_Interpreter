@@ -1,0 +1,12 @@
+program
+	x(ref a, b) begin a = b; endfunc
+begin
+	ref x, y;
+	x=new;
+	y=new;
+	x = 1;
+	y = 2;
+	begin x(x, y);
+	output x;
+	output y;
+end

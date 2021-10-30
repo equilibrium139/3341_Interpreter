@@ -72,7 +72,7 @@ public class Parser {
     {
         var program = new ParseTreeNode.Program();
         expect("Program must start with 'program' keyword.", Core.PROGRAM);
-        if (matches(Core.INT, Core.REF))
+        if (matches(Core.INT, Core.REF, Core.ID))
         {
             program.declSeq = declSeq();
         }
@@ -83,13 +83,16 @@ public class Parser {
         return program;
     }
 
-    List<ParseTreeNode.Decl> declSeq() 
+    ParseTreeNode.DeclSeq declSeq() 
     {
-        var decls = new ArrayList<ParseTreeNode.Decl>();
-        decls.add(decl());
-        while (matches(Core.INT, Core.REF))
+        var decls = new ParseTreeNode.DeclSeq();
+        decls.declSeq = new ArrayList<ParseTreeNode.VarDecl>();
+        decls.funcDeclSeq = new ArrayList<ParseTreeNode.FuncDecl>();
+        while (true)
         {
-            decls.add(decl());
+            if (matches(Core.INT, Core.REF)) decls.declSeq.add(decl());
+            else if (matches(Core.ID)) decls.funcDeclSeq.add(funcDecl());
+            else break;
         }
         return decls;
     }
@@ -105,9 +108,9 @@ public class Parser {
         return stmts;
     }
 
-    ParseTreeNode.Decl decl() 
+    ParseTreeNode.VarDecl decl() 
     {
-        var decl = new ParseTreeNode.Decl();
+        var decl = new ParseTreeNode.VarDecl();
         if (consume(Core.INT))
         {
             decl.type = VarType.INT;
@@ -119,6 +122,20 @@ public class Parser {
         }
         decl.ids = idList();
         expect("Declaration must end with ';'.", Core.SEMICOLON);
+        return decl;
+    }
+
+    ParseTreeNode.FuncDecl funcDecl()
+    {
+        var decl = new ParseTreeNode.FuncDecl();
+        decl.id = id();
+        expect("Missing '(' before function parameters.", Core.LPAREN);
+        expect("Missing 'ref' before function parameters.", Core.REF);
+        decl.params = idList();
+        expect("Missing ')' after function parameters.", Core.LPAREN);
+        expect("Missing 'begin' before function body.", Core.BEGIN);
+        decl.body = stmtSeq();
+        expect("Missing 'endfunc' after function body.", Core.ENDFUNC);
         return decl;
     }
 
@@ -176,11 +193,24 @@ public class Parser {
         {
             return decl();
         }
+        else if (consume(Core.BEGIN))
+        {
+            return funcCall();
+        }
         else 
         {
             expect("Invalid statement.", Core.OUTPUT);
             return output();
         }
+    }
+
+    private ParseTreeNode.Stmt funcCall() {
+        var stmt = new ParseTreeNode.FuncCall();
+        stmt.id = id();
+        expect("Missing '(' before function arguments.", Core.LPAREN);
+        stmt.params = idList();
+        expect("Missing ')' after function arguments.", Core.RPAREN);
+        return stmt;
     }
 
     private ParseTreeNode.Output output() {

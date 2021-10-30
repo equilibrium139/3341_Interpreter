@@ -4,9 +4,8 @@ public abstract class ParseTreeNode
 {
     public static class Program extends ParseTreeNode
     {
-        DeclSeq declSeq;
+        public DeclSeq declSeq;
         public List<Stmt> stmtSeq;
-        public Program() {}
     }
 
     public static class DeclSeq
@@ -26,25 +25,25 @@ public abstract class ParseTreeNode
 
     public static class If extends Stmt
     {
-        Cond condition;
-        List<Stmt> ifBody;
-        List<Stmt> elseBody;
+        public Cond condition;
+        public List<Stmt> ifBody;
+        public List<Stmt> elseBody;
     }
 
     public static class Loop extends Stmt
     {
-        Cond condition;
-        List<Stmt> body;
+        public Cond condition;
+        public List<Stmt> body;
     }
 
     public static class Input extends Stmt
     {
-        String id;
+        public String id;
     }
 
     public static class Output extends Stmt
     {
-        Expr expr;
+        public Expr expr;
     }
 
     public static class VarDecl extends Stmt

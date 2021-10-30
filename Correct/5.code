@@ -1,0 +1,16 @@
+program
+	A(ref r, s) begin 
+		r=0; 
+		s=0; 
+	endfunc
+	ref x;
+	ref y;
+begin
+	x=new;
+	y=new;
+	x=1;
+	y=1;
+	begin A(x, y);
+	output x;
+	output y;
+end
